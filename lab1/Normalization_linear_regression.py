@@ -12,7 +12,7 @@ plt.style.use('default')
 class SimpleLinearRegressionFromScratch:
     """Simple Linear Regression implemented from scratch with batch and online learning"""
     
-    def __init__(self, learning_rate: float = 1e-10, max_epochs: int = 1000, tolerance: float = 1e-6):
+    def __init__(self, learning_rate: float = 0.001, max_epochs: int = 1000, tolerance: float = 1e-6):
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
         self.tolerance = tolerance
@@ -24,64 +24,68 @@ class SimpleLinearRegressionFromScratch:
         # Training history
         self.cost_history = []
         self.epoch_history = []
+        
+        # Data normalization parameters
+        self.X_mean = None
+        self.X_std = None
+        self.y_mean = None
+        self.y_std = None
+    
+    def _normalize_data(self, X: np.ndarray, y: np.ndarray, fit: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        """Normalize features and target for better convergence"""
+        if fit:
+            self.X_mean = np.mean(X)
+            self.X_std = np.std(X)
+            self.y_mean = np.mean(y)
+            self.y_std = np.std(y)
+        
+        X_norm = (X - self.X_mean) / self.X_std if self.X_std != 0 else X - self.X_mean
+        y_norm = (y - self.y_mean) / self.y_std if self.y_std != 0 else y - self.y_mean
+        
+        return X_norm, y_norm
+    
+    def _denormalize_predictions(self, y_pred_norm: np.ndarray) -> np.ndarray:
+        """Denormalize predictions back to original scale"""
+        return y_pred_norm * self.y_std + self.y_mean
     
     def _compute_cost(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
-        """Compute Mean Squared Error with numerical stability"""
-        cost = np.mean((y_pred - y_true) ** 2)
-        # Check for numerical issues
-        if np.isnan(cost) or np.isinf(cost):
-            return float('inf')
-        return cost
+        """Compute Mean Squared Error"""
+        return np.mean((y_pred - y_true) ** 2)
     
     def fit_batch(self, X: np.ndarray, y: np.ndarray, verbose: bool = True) -> None:
         """Train using batch gradient descent"""
         if verbose:
             print("Training with Batch Gradient Descent...")
         
-        # Initialize parameters with small values
-        self.weight = np.random.normal(0, 1e-6)
-        self.bias = np.random.normal(0, 1e-6)
+        # Normalize data
+        X_norm, y_norm = self._normalize_data(X, y, fit=True)
+        
+        # Initialize parameters
+        self.weight = np.random.normal(0, 0.01)
+        self.bias = np.random.normal(0, 0.01)
         
         self.cost_history = []
         self.epoch_history = []
         
         prev_cost = float('inf')
-        m = len(y)
-        
-        # Adaptive learning rate based on data scale
-        data_scale = np.max(X) * np.max(y)
-        adaptive_lr = self.learning_rate / max(1, data_scale / 1e6)
+        m = len(y_norm)
         
         for epoch in range(self.max_epochs):
             # Forward pass
-            y_pred = self.weight * X + self.bias
-            
-            # Check for numerical issues
-            if np.any(np.isnan(y_pred)) or np.any(np.isinf(y_pred)):
-                print(f"Numerical instability detected at epoch {epoch}. Stopping training.")
-                break
+            y_pred = self.weight * X_norm + self.bias
             
             # Compute cost
-            current_cost = self._compute_cost(y, y_pred)
-            if current_cost == float('inf'):
-                print(f"Cost became infinite at epoch {epoch}. Stopping training.")
-                break
-                
+            current_cost = self._compute_cost(y_norm, y_pred)
             self.cost_history.append(current_cost)
             self.epoch_history.append(epoch)
             
             # Compute gradients
-            error = y_pred - y
-            dw = (1/m) * np.sum(error * X)
-            db = (1/m) * np.sum(error)
-            
-            # Gradient clipping to prevent explosion
-            dw = np.clip(dw, -1e6, 1e6)
-            db = np.clip(db, -1e6, 1e6)
+            dw = (1/m) * np.sum((y_pred - y_norm) * X_norm)
+            db = (1/m) * np.sum(y_pred - y_norm)
             
             # Update parameters
-            self.weight -= adaptive_lr * dw
-            self.bias -= adaptive_lr * db
+            self.weight -= self.learning_rate * dw
+            self.bias -= self.learning_rate * db
             
             # Check convergence
             if abs(prev_cost - current_cost) < self.tolerance:
@@ -102,24 +106,23 @@ class SimpleLinearRegressionFromScratch:
         if verbose:
             print("Training with Online Gradient Descent...")
         
-        # Initialize parameters with small values
-        self.weight = np.random.normal(0, 1e-6)
-        self.bias = np.random.normal(0, 1e-6)
+        # Normalize data
+        X_norm, y_norm = self._normalize_data(X, y, fit=True)
+        
+        # Initialize parameters
+        self.weight = np.random.normal(0, 0.01)
+        self.bias = np.random.normal(0, 0.01)
         
         self.cost_history = []
         self.epoch_history = []
         
-        m = len(y)
-        
-        # Adaptive learning rate based on data scale
-        data_scale = np.max(X) * np.max(y)
-        adaptive_lr = self.learning_rate / max(1, data_scale / 1e6)
+        m = len(y_norm)
         
         for epoch in range(self.max_epochs):
             # Shuffle data
             indices = np.random.permutation(m)
-            X_shuffled = X[indices]
-            y_shuffled = y[indices]
+            X_shuffled = X_norm[indices]
+            y_shuffled = y_norm[indices]
             
             epoch_cost = 0
             
@@ -128,35 +131,20 @@ class SimpleLinearRegressionFromScratch:
                 # Forward pass for single sample
                 y_pred_i = self.weight * X_shuffled[i] + self.bias
                 
-                # Check for numerical issues
-                if np.isnan(y_pred_i) or np.isinf(y_pred_i):
-                    if verbose:
-                        print(f"Numerical instability detected at epoch {epoch}, sample {i}. Stopping training.")
-                    return
-                
                 # Compute cost for this sample
                 sample_cost = (y_pred_i - y_shuffled[i]) ** 2
                 epoch_cost += sample_cost
                 
                 # Compute gradients
-                error = y_pred_i - y_shuffled[i]
-                dw = error * X_shuffled[i]
-                db = error
-                
-                # Gradient clipping
-                dw = np.clip(dw, -1e6, 1e6)
-                db = np.clip(db, -1e6, 1e6)
+                dw = (y_pred_i - y_shuffled[i]) * X_shuffled[i]
+                db = y_pred_i - y_shuffled[i]
                 
                 # Update parameters
-                self.weight -= adaptive_lr * dw
-                self.bias -= adaptive_lr * db
+                self.weight -= self.learning_rate * dw
+                self.bias -= self.learning_rate * db
             
             # Average cost for the epoch
             avg_cost = epoch_cost / m
-            if np.isnan(avg_cost) or np.isinf(avg_cost):
-                print(f"Cost became invalid at epoch {epoch}. Stopping training.")
-                break
-                
             self.cost_history.append(avg_cost)
             self.epoch_history.append(epoch)
             
@@ -168,16 +156,15 @@ class SimpleLinearRegressionFromScratch:
     
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Make predictions on new data"""
-        y_pred = self.weight * X + self.bias
-        return y_pred
+        X_norm = (X - self.X_mean) / self.X_std if self.X_std != 0 else X - self.X_mean
+        y_pred_norm = self.weight * X_norm + self.bias
+        return self._denormalize_predictions(y_pred_norm)
     
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """Calculate R² score"""
         y_pred = self.predict(X)
         ss_res = np.sum((y - y_pred) ** 2)
         ss_tot = np.sum((y - np.mean(y)) ** 2)
-        if ss_tot == 0:
-            return 0.0
         return 1 - (ss_res / ss_tot)
     
     def mean_squared_error(self, X: np.ndarray, y: np.ndarray) -> float:
@@ -310,16 +297,11 @@ class DatasetAnalyzer:
         correlations = []
         for feature in numeric_features:
             corr = abs(self.df[feature].corr(self.df[self.target_col]))
-            if np.isnan(corr):
-                corr = 0.0
             correlations.append(corr)
         
         # Normalize to percentages
         total_corr = sum(correlations)
-        if total_corr == 0:
-            importance_pct = [0] * len(correlations)
-        else:
-            importance_pct = [100 * corr / total_corr for corr in correlations]
+        importance_pct = [100 * corr / total_corr for corr in correlations]
         
         # Create importance DataFrame
         importance_df = pd.DataFrame({
@@ -380,17 +362,12 @@ class DatasetAnalyzer:
         print("MODEL TRAINING AND COMPARISON")
         print(f"{'='*60}")
         
-        # Use different learning rates for different datasets
-        if self.dataset_name.lower() == 'housing':
-            # Very small learning rate for housing due to large values
-            batch_model = SimpleLinearRegressionFromScratch(learning_rate=1e-12, max_epochs=1000)
-            online_model = SimpleLinearRegressionFromScratch(learning_rate=1e-13, max_epochs=500)
-        else:
-            # Normal learning rates for advertising
-            batch_model = SimpleLinearRegressionFromScratch(learning_rate=0.01, max_epochs=1000)
-            online_model = SimpleLinearRegressionFromScratch(learning_rate=0.001, max_epochs=500)
-        
+        # Batch model
+        batch_model = SimpleLinearRegressionFromScratch(learning_rate=0.01, max_epochs=1000)
         batch_model.fit_batch(X_train, y_train, verbose=False)
+        
+        # Online model
+        online_model = SimpleLinearRegressionFromScratch(learning_rate=0.001, max_epochs=500)
         online_model.fit_online(X_train, y_train, verbose=False)
         
         # Evaluate models
