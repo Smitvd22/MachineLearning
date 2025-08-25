@@ -8,7 +8,7 @@ num_rolls_range = range(1, 51)
 num_experiments_list = [100, 500, 1000, 5000, 10000, 50000, 100000]
 
 # Create output directory for histograms
-output_dir = "die_roll_histograms"
+output_dir = "lab4/die_roll_histograms"
 os.makedirs(output_dir, exist_ok=True)
 
 results = {}

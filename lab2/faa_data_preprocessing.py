@@ -45,8 +45,6 @@ def custom_datetime_converter(date_str, time_str):
         year = int(date_parts[2])
         if year < 50:  # Assume years less than 50 are 20xx
             year += 2000
-        else:
-            year += 1900
         
         # Parse time string manually (format: HH:MM:SSZ)
         time_clean = str(time_str).replace('Z', '')
