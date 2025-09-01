@@ -1,66 +1,11 @@
 import numpy as np
 import pandas as pd
-from collections import Counter
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from lab5.lab_utils import get_split_indices, standardize_fit, standardize_apply, random_oversample, binary_metrics, predict_linear_regression, train_linear_regression
 
 
-def get_split_indices(n, train_size, val_size, test_size, random_state=42):
-    assert abs(train_size + val_size + test_size - 1.0) < 1e-8
-    rng = np.random.RandomState(random_state)
-    perm = rng.permutation(n)
-    n_train = int(train_size * n)
-    n_val = int(val_size * n)
-    if n_train == 0 and n > 0:
-        n_train = 1
-    if n_val == 0 and n - n_train > 1:
-        n_val = 1
-    train_idx = perm[:n_train]
-    val_idx = perm[n_train:n_train + n_val]
-    test_idx = perm[n_train + n_val:]
-    return train_idx, val_idx, test_idx
-
-
-def standardize_fit(X):
-    mu = X.mean(axis=0)
-    sigma = X.std(axis=0, ddof=0)
-    sigma[sigma == 0] = 1.0
-    return mu, sigma
-
-
-def standardize_apply(X, mu, sigma):
-    return (X - mu) / sigma
-
-
-def train_linear_regression(X_train, y_train, X_val, y_val, lr=0.01, epochs=200, patience=10):
-    n_train, d = X_train.shape
-    X_tr = np.hstack([np.ones((n_train, 1)), X_train])
-    n_val = X_val.shape[0]
-    X_v = np.hstack([np.ones((n_val, 1)), X_val])
-    w = np.zeros(d + 1, dtype=float)
-    best_w = w.copy()
-    best_val_loss = float('inf')
-    wait = 0
-
-    for epoch in range(1, epochs + 1):
-        preds = X_tr.dot(w)
-        error = preds - y_train
-        loss = (error ** 2).mean()
-        grad = (2.0 / n_train) * X_tr.T.dot(error)
-        w -= lr * grad
-
-        val_preds = X_v.dot(w)
-        val_error = val_preds - y_val
-        val_loss = (val_error ** 2).mean()
-
-        if val_loss < best_val_loss - 1e-12:
-            best_val_loss = val_loss
-            best_w = w.copy()
-            wait = 0
-        else:
-            wait += 1
-            if wait >= patience:
-                break
-
-    return best_w, best_val_loss
+# use train_linear_regression from lab_utils
 
 
 def predict_linear_regression(w, X):
@@ -81,33 +26,6 @@ def binary_metrics(y_true, y_pred_bin):
     else:
         f1 = 2 * (precision * recall) / (precision + recall)
     return {'acc': accuracy, 'prec': precision, 'rec': recall, 'f1': f1}
-
-
-def random_oversample(X, y, rng=None):
-    if rng is None:
-        rng = np.random.RandomState(0)
-    counter = Counter(y)
-    if len(counter) <= 1:
-        return X.copy(), y.copy()
-    # target is majority count
-    target = max(counter.values())
-    X_res = []
-    y_res = []
-    for cls in sorted(counter.keys()):
-        idx = np.where(y == cls)[0]
-        n = len(idx)
-        if n == 0:
-            continue
-        reps = target // n
-        rem = target - reps * n
-        chosen = np.concatenate([np.repeat(idx, reps), rng.choice(idx, rem, replace=True)]) if reps > 0 or rem > 0 else idx
-        X_res.append(X[chosen])
-        y_res.append(y[chosen])
-    X_out = np.vstack(X_res)
-    y_out = np.concatenate(y_res)
-    # shuffle
-    perm = rng.permutation(len(y_out))
-    return X_out[perm], y_out[perm]
 
 
 
@@ -152,7 +70,7 @@ def run_experiment():
                     X_tr_used, y_tr_used = random_oversample(X_train_s, y_train, rng=rng)
 
                 # For validation we keep original val set (no oversampling)
-                w, vloss = train_linear_regression(X_tr_used, y_tr_used, X_val_s, y_val, lr=0.05, epochs=300, patience=15)
+                w, vloss, *_ = train_linear_regression(X_tr_used, y_tr_used, X_val_s, y_val, lr=0.05, epochs=300, patience=15)
                 preds = predict_linear_regression(w, X_test_s)
                 preds_bin = (preds > 0.5).astype(int)
                 metrics = binary_metrics(y_test, preds_bin)
