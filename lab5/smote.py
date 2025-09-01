@@ -5,60 +5,6 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lab5.lab_utils import get_split_indices, standardize_fit, standardize_apply, random_oversample, binary_metrics, predict_linear_regression, train_linear_regression
 
-
-def get_split_indices(n, train_size, val_size, test_size, random_state=42):
-    assert abs(train_size + val_size + test_size - 1.0) < 1e-8
-    rng = np.random.RandomState(random_state)
-    perm = rng.permutation(n)
-    n_train = int(train_size * n)
-    n_val = int(val_size * n)
-    if n_train == 0 and n > 0:
-        n_train = 1
-    if n_val == 0 and n - n_train > 1:
-        n_val = 1
-    train_idx = perm[:n_train]
-    val_idx = perm[n_train:n_train + n_val]
-    test_idx = perm[n_train + n_val:]
-    return train_idx, val_idx, test_idx
-
-
-def standardize_fit(X):
-    mu = X.mean(axis=0)
-    sigma = X.std(axis=0, ddof=0)
-    sigma[sigma == 0] = 1.0
-    return mu, sigma
-
-
-def standardize_apply(X, mu, sigma):
-    return (X - mu) / sigma
-
-
-# use train_linear_regression from lab_utils
-
-
-def predict_linear_regression(w, X):
-    X_aug = np.hstack([np.ones((X.shape[0], 1)), X])
-    return X_aug.dot(w)
-
-
-def binary_metrics(y_true, y_pred_bin):
-    tp = int(((y_true == 1) & (y_pred_bin == 1)).sum())
-    tn = int(((y_true == 0) & (y_pred_bin == 0)).sum())
-    fp = int(((y_true == 0) & (y_pred_bin == 1)).sum())
-    fn = int(((y_true == 1) & (y_pred_bin == 0)).sum())
-    accuracy = (tp + tn) / max(1, (tp + tn + fp + fn))
-    precision = tp / max(1, (tp + fp))
-    recall = tp / max(1, (tp + fn))
-    if precision + recall == 0:
-        f1 = 0.0
-    else:
-        f1 = 2 * (precision * recall) / (precision + recall)
-    return {'acc': accuracy, 'prec': precision, 'rec': recall, 'f1': f1}
-
-
-
-
-
 def smote_pairwise(X_minority, n_samples, rng=None):
     """Generate synthetic samples by randomly picking two minority samples and
     interpolating between them (uniform gap).

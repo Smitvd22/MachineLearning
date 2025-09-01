@@ -4,31 +4,6 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lab5.lab_utils import get_split_indices, standardize_fit, standardize_apply, random_oversample, binary_metrics, predict_linear_regression, train_linear_regression
 
-
-# use train_linear_regression from lab_utils
-
-
-def predict_linear_regression(w, X):
-    X_aug = np.hstack([np.ones((X.shape[0], 1)), X])
-    return X_aug.dot(w)
-
-
-def binary_metrics(y_true, y_pred_bin):
-    tp = int(((y_true == 1) & (y_pred_bin == 1)).sum())
-    tn = int(((y_true == 0) & (y_pred_bin == 0)).sum())
-    fp = int(((y_true == 0) & (y_pred_bin == 1)).sum())
-    fn = int(((y_true == 1) & (y_pred_bin == 0)).sum())
-    accuracy = (tp + tn) / max(1, (tp + tn + fp + fn))
-    precision = tp / max(1, (tp + fp))
-    recall = tp / max(1, (tp + fn))
-    if precision + recall == 0:
-        f1 = 0.0
-    else:
-        f1 = 2 * (precision * recall) / (precision + recall)
-    return {'acc': accuracy, 'prec': precision, 'rec': recall, 'f1': f1}
-
-
-
 def run_experiment():
     df = pd.read_csv('lab5/Iris.csv')
     X = df[['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']].to_numpy(dtype=float)

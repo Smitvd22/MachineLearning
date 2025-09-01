@@ -14,12 +14,8 @@ y2 = (df['Species'] == 'Iris-versicolor').astype(int).to_numpy()
 y3 = (df['Species'] == 'Iris-virginica').astype(int).to_numpy()
 
 
-# use train_linear_regression and predict_linear_regression from lab_utils
-
-
 def accuracy(y_true, y_pred_binary):
     return float((y_true == y_pred_binary).mean())
-
 
 splits = [(0.8, 0.1, 0.1), (0.7, 0.15, 0.15)]
 for train_size, val_size, test_size in splits:
