@@ -513,8 +513,8 @@ def extract_flight_phase_from_text(df):
         ext = flight_phase_text[i]
         confusion_matrix[orig][ext] += 1
     
-    # Display confusion matrix
-    print(f"{'Original \\ Extracted':<15}", end="")
+    # # Display confusion matrix
+    # print(f"{'Original \\ Extracted':<15}", end="")
     for ext in unique_extracted:
         print(f"{ext:<12}", end="")
     print()
