@@ -1,20 +1,27 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import entropy
 import os
+
+def _entropy_from_probs(probs):
+    """Compute entropy H = -sum p * log_base(p), ignoring p==0."""
+    probs = np.asarray(probs, dtype=float)
+    probs = probs[probs > 0]
+    if probs.size == 0:
+        return 0.0
+    return -np.sum(probs * np.log2(probs))
 
 def calculate_entropy_for_column(col, bins=10):
     if col.dtype == 'object' or col.dtype.name == 'category':
         # Categorical variable
-        counts = col.value_counts()
+        counts = col.dropna().value_counts()
         probs = counts / counts.sum()
-        return entropy(probs, base=2)
+        return _entropy_from_probs(probs.values)
     else:
         # Continuous variable: binning
-        binned = pd.cut(col, bins=bins, duplicates='drop')
+        binned = pd.cut(col.dropna(), bins=bins, duplicates='drop')
         counts = binned.value_counts()
         probs = counts / counts.sum()
-        return entropy(probs, base=2)
+        return _entropy_from_probs(probs.values)
 
 def process_dataset(file_path, bins=10):
     df = pd.read_csv(file_path)
