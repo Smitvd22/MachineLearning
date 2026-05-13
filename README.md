@@ -4,7 +4,7 @@ This repository contains lab assignments, practical experiments, and mini implem
 
 ---
 
-## 📚 Course Information
+## Course Information
 
 - **Subject:** Machine Learning
 - **Semester:** 5
@@ -13,17 +13,27 @@ This repository contains lab assignments, practical experiments, and mini implem
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
-├── Experiment-1
-├── Experiment-2
-└── Experiment-3
+.
+├── lab1
+├── lab2
+├── lab3
+├── lab4
+├── lab5
+├── lab6
+├── lab7
+├── lab8
+├── lab9
+├── lab10
+├── lab11
+└── lab12
 ```
 
 ---
 
-## 🎯 Objectives
+## Objectives
 
 - Understand practical concepts of Machine Learning
 - Implement theoretical concepts through coding
@@ -32,27 +42,21 @@ This repository contains lab assignments, practical experiments, and mini implem
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
-1. Clone the repository
-
-```bash
-git clone 
-```
-
-2. Open the project folder
-
-3. Run the required files/programs according to the experiment instructions
+1. Clone the repository and open the project folder.
+2. Navigate into the desired lab folder (for example, `lab5`).
+3. Run the required Python file for that lab.
 
 ---
 
-## 📌 Note
+## Note
 
 This repository is maintained for academic and learning purposes.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 Smit  
 B.Tech Artificial Intelligence Student
